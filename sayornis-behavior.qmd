@@ -1,0 +1,70 @@
+# Data Analysis Notebook for Sayornis Phoebe Behavioral Observations
+## Date: May 2023
+## Author: Tim Farkas, Nick Vinciguerra
+
+```{r}
+#| label: import dependencies
+library('tidyverse')
+library('tidymodels')
+```
+
+```{r}
+#| label: import data
+df = read_csv('data/niche_data.csv', col_types = 'fifif')
+```
+
+# Exploration
+
+```{r}
+# species cross-tabulations
+for (var in c("attack_maneuver", "foraging_height", "foraging_substrate", "foliage_density")) {
+    print(xtabs(formula(paste0("~ species + ", var)), data = df))
+}
+```
+
+```{r}
+#| label: foliage density and foraging height
+xtabs(~ foliage_density + foraging_height, data = df)
+xtabs(~ fol_dens_bin + for_height_bin, data = df)
+xtabs(~ foraging_height + attack_maneuver, data = df)
+xtabs(~ foliage_density + attack_maneuver, data = df)
+```
+1. Sally-glean only for Black Phoebe
+2. Foraging height low for both, but Say's never forages high
+3. Foraging substrate perfectly correlated with maneuver. Delete. 
+4. Foliage density low for both, never high for Say's.  
+
+```{r}
+#| label: tranform variables
+df <- df %>%
+    # filter(attack_maneuver != "Sally_glean") %>%
+    mutate(
+        for_height_bin = ifelse(foraging_height == 1, "Low", "High"), 
+        fol_dens_bin = ifelse(foliage_density == 1, "Low", "High")
+    )
+```
+```{r}
+#| label: model with decision tree
+dt = decision_tree(
+    mode = 'classification', 
+    engine = 'rpart',
+    tree_depth = 10,
+    min_n = 1,
+    cost_complexity = 0
+) 
+mod <- dt %>% 
+fit(species ~ attack_maneuver + foliage_density + foraging_height, data = df)
+mod
+```
+
+
+```{r}
+#| label: model with logistic regression
+lr <- logistic_reg(
+    mode = "classification", 
+    engine = "glm"
+)
+lr_mod <- lr %>%
+fit(species ~ attack_maneuver *  foraging_height + foliage_density, data = df)
+summary(lr_mod$fit)
+```
