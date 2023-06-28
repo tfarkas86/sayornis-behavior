@@ -48,11 +48,11 @@ df <- df %>%
 dt = decision_tree(
     mode = 'classification', 
     engine = 'rpart',
-    tree_depth = 10,
+    tree_depth = 20,
     min_n = 1,
     cost_complexity = 0
 ) 
-mod <- dt %>% 
+mod <- dt %>%  
 fit(species ~ attack_maneuver + foliage_density + foraging_height, data = df)
 mod
 ```
@@ -67,4 +67,31 @@ lr <- logistic_reg(
 lr_mod <- lr %>%
 fit(species ~ attack_maneuver *  foraging_height + foliage_density, data = df)
 summary(lr_mod$fit)
+```
+
+# Validation
+
+
+```{r}
+#| label: v-fold cross-validation
+folds = vfold_cv(df, v = 5)
+dtree_mod_cv <- dt %>%
+fit_resamples(folds)
+```
+
+# PCA
+```{r}
+niche.dataset <- read_csv("data/niche_data_recoded.csv", 
+col_types = 'ccici'
+)
+
+recipe(formula = Species ~ .,
+       data = niche.dataset) %>% 
+# Declare that one-hot encoding will be applied to all nominal variables
+step_dummy(all_nominal(),
+           one_hot = TRUE) %>% 
+# Based on the previous declarations, apply transformations to the data
+# and return the resulting data frame
+prep() %>% 
+juice()
 ```
