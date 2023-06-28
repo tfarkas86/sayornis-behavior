@@ -93,5 +93,5 @@ step_dummy(all_nominal(),
 # Based on the previous declarations, apply transformations to the data
 # and return the resulting data frame
 prep() %>% 
-juice()
+bake(new_data = NULL)
 ```
