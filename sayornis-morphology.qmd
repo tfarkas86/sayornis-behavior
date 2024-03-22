@@ -22,6 +22,7 @@ theme_set(theme_classic())
 df <- read_csv("/Users/tim/Dropbox/1_Work/1_Research/sayornis-behavior/morph_data_averaged.csv", col_types = 'fdddddd')
 ```
 
+# All morphology combined
 ```{r}
 #| label: PCA
 #preparing variables
@@ -40,23 +41,31 @@ z <- prcomp(log.morph, scale = TRUE)      # shortcut, indicating columns
 df_pca <- z$x %>%
   bind_cols(df["species"]) %>%
   mutate(species = as.factor(species))
-
-glmmod <- glm(species ~ PC1, data = df_pca, family = "binomial")
+```
+```{r logistf}
+logf_mod <- logistf(species ~ ., data = df_pca)
+summary(logf_mod)
 ```
 
-```{r GLMNET with caret}
-fitControl <- trainControl(## 10-fold CV
-                           method = "repeatedcv",
-                           number = 10,
-                           ## repeated ten times
-                           repeats = 10)
-glmnetMod <- train(species ~ ., data = df, 
-                 method = "elasticnet", 
-                 trControl = fitControl,
-                 ## This last option is actually one
-                 ## for gbm() that passes through
-                 verbose = FALSE)
-glmnetMod
+# Body morphology only
+```{r}
+#| label: PCA
+#preparing variables
+v <- var(df)  
+diag(v)           # extracts the diagonal, i.e., the variances.
+
+log.morph <- log(df[ ,c(2, 6, 7)])
+log.v <- var(log.morph)  
+diag(log.v)           # extracts the diagonal, i.e., the variances.
+
+#Principal components analysis
+z <- prcomp(log.morph, scale = TRUE)      # shortcut, indicating columns
+```
+
+```{r}
+df_pca <- z$x %>%
+  bind_cols(df["species"]) %>%
+  mutate(species = as.factor(species))
 ```
 
 ```{r logistf}
@@ -64,6 +73,28 @@ logf_mod <- logistf(species ~ ., data = df_pca)
 summary(logf_mod)
 ```
 
+# Bill morphology only
+```{r}
+#| label: PCA
+#preparing variables
+v <- var(df)  
+diag(v)           # extracts the diagonal, i.e., the variances.
 
+log.morph <- log(df[ ,3:5])
+log.v <- var(log.morph)  
+diag(log.v)           # extracts the diagonal, i.e., the variances.
 
+#Principal components analysis
+z <- prcomp(log.morph, scale = TRUE)      # shortcut, indicating columns
+```
 
+```{r}
+df_pca <- z$x %>%
+  bind_cols(df["species"]) %>%
+  mutate(species = as.factor(species))
+```
+
+```{r logistf}
+logf_mod <- logistf(species ~ ., data = df_pca)
+summary(logf_mod)
+```
