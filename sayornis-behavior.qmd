@@ -6,11 +6,13 @@
 #| label: import dependencies
 library('tidyverse')
 library('tidymodels')
+library(FactoMineR)
+library(lme4)
 ```
 
 ```{r}
 #| label: import data
-df = read_csv('data/niche_data.csv', col_types = 'fifif')
+df = read_csv('/Users/tim/Dropbox/1_Work/1_Research/sayornis-behavior/data/niche_data.csv', col_types = 'fifif')
 ```
 
 # Exploration
@@ -28,6 +30,7 @@ xtabs(~ foliage_density + foraging_height, data = df)
 xtabs(~ fol_dens_bin + for_height_bin, data = df)
 xtabs(~ foraging_height + attack_maneuver, data = df)
 xtabs(~ foliage_density + attack_maneuver, data = df)
+xtabs(~ species + observation, data = df)
 ```
 1. Sally-glean only for Black Phoebe
 2. Foraging height low for both, but Say's never forages high
@@ -39,9 +42,10 @@ xtabs(~ foliage_density + attack_maneuver, data = df)
 df <- df %>%
     # filter(attack_maneuver != "Sally_glean") %>%
     mutate(
-        for_height_bin = ifelse(foraging_height == 1, "Low", "High"), 
-        fol_dens_bin = ifelse(foliage_density == 1, "Low", "High")
-    )
+        for_height_bin = factor(ifelse(foraging_height == 1, "Low", "High")), 
+        fol_dens_bin = factor(ifelse(foliage_density == 1, "Low", "High"))
+    ) %>%
+    select(!foraging_substrate)
 ```
 ```{r}
 #| label: model with decision tree
@@ -68,6 +72,31 @@ lr_mod <- lr %>%
 fit(species ~ attack_maneuver *  foraging_height + foliage_density, data = df)
 summary(lr_mod$fit)
 ```
+
+```{r}
+#| label: MCA with FactoMineR package
+mca_df <- df %>%
+    select(attack_maneuver, for_height_bin, fol_dens_bin)
+mca <- MCA(X = mca_df) 
+plot.MCA(mca)
+
+coords <- df[, c("species", "observation")] %>%
+  bind_cols(mca$ind$coord) %>%
+  mutate(across(species, ~ fct_recode(.x,
+                                 black = "Sayornis_nigricans",
+                                  says = "Sayornis_saya")), 
+         across(observation, ~ as.factor(ifelse(species == "says", .x + 8, .x))))
+names(coords) <- c("sp", "obs", "dim1", "dim2", "dim3", "dim4")
+```
+
+```{r}
+mod <- glm(sp ~ dim1 + dim2, data = coords, family = "binomial")
+summary(mod)
+#| label: glmer
+mmod <- glmer(sp ~ dim1 + (1 | obs), data = coords, family = "binomial")
+summary(mmod)
+```
+
 
 # Validation
 

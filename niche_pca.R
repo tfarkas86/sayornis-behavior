@@ -1,13 +1,17 @@
 library(devtools)
 library(ggbiplot)
 library(factoextra)
+library(FactoMineR)
+library(dplyr)
 theme_set(theme_classic())
 
 # import Sayornis foraging niche dataset
-niche.dataset <- read.csv("../data/niche_data_coded.csv")
+niche.dataset <- read.csv("~/Dropbox/1_Work/1_Research/sayornis-behavior/data/niche_data_recoded.csv") %>%
+  filter(Attack_maneuver != 3) %>%
+  select(!Foraging_substrate)
 
 # extract characters from niche dataset
-niche.characters <- niche.dataset[, 2:5]
+niche.characters <- niche.dataset[, 2:4]
 
 #preparing variables
 v <- var(niche.characters)  

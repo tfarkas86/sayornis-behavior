@@ -1,0 +1,69 @@
+---
+title: "Sayornis Morphology"
+format: html
+editor: visual
+---
+
+```{r}
+library(ggbiplot)
+library(ggplot2)
+library(factoextra)
+library(FactoMineR)
+library(MASS)
+library(dplyr)
+library(readr)
+library(caret)
+library(logistf)
+theme_set(theme_classic())
+```
+
+```{r}
+#| label: import data
+df <- read_csv("/Users/tim/Dropbox/1_Work/1_Research/sayornis-behavior/morph_data_averaged.csv", col_types = 'fdddddd')
+```
+
+```{r}
+#| label: PCA
+#preparing variables
+v <- var(df)  
+diag(v)           # extracts the diagonal, i.e., the variances.
+
+log.morph <- log(df[ ,2:7])
+log.v <- var(log.morph)  
+diag(log.v)           # extracts the diagonal, i.e., the variances.
+
+#Principal components analysis
+z <- prcomp(log.morph, scale = TRUE)      # shortcut, indicating columns
+```
+
+```{r}
+df_pca <- z$x %>%
+  bind_cols(df["species"]) %>%
+  mutate(species = as.factor(species))
+
+glmmod <- glm(species ~ PC1, data = df_pca, family = "binomial")
+```
+
+```{r GLMNET with caret}
+fitControl <- trainControl(## 10-fold CV
+                           method = "repeatedcv",
+                           number = 10,
+                           ## repeated ten times
+                           repeats = 10)
+glmnetMod <- train(species ~ ., data = df, 
+                 method = "elasticnet", 
+                 trControl = fitControl,
+                 ## This last option is actually one
+                 ## for gbm() that passes through
+                 verbose = FALSE)
+glmnetMod
+```
+
+```{r logistf}
+logf_mod <- logistf(species ~ ., data = df_pca)
+summary(logf_mod)
+```
+
+
+
+
